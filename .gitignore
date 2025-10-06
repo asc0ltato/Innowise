@@ -1,0 +1,27 @@
+# Ignore bin and obj folders
+**/bin/
+**/obj/
+
+# Ignore Debug and Release folders
+Debug/
+Release/
+
+# Ignore assembly files and build artifacts
+*.dll
+*.exe
+*.pdb
+*.docx
+*.pdf
+
+# Ignore other common C# artifacts
+*.tmp
+*.bak
+*.log
+
+# Ignore Rider-specific files
+.idea/
+*.iml
+
+# Ignore .NET Core build artifacts
+obj/
+bin/
