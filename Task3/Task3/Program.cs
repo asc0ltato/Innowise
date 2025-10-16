@@ -66,18 +66,9 @@ static async Task AddTask(TaskService taskService)
     
     Console.Write("Enter the description: ");
     var description = Console.ReadLine();
-
-    if (string.IsNullOrWhiteSpace(title))
-    {
-        Console.WriteLine("Error: The header is empty!");
-        return;
-    }
-
-    var success = await taskService.AddTaskAsync(title, description ?? "");
-    if (success)
-        Console.WriteLine("The task was successfully added!!");
-    else
-        Console.WriteLine("Error when add a task!");
+    
+    var result = await taskService.AddTaskAsync(title, description ?? "");
+    Console.WriteLine(result);
 }
 
 static async Task ViewAllTasks(TaskService taskService)
@@ -89,7 +80,7 @@ static async Task ViewAllTasks(TaskService taskService)
     
     if (!tasks.Any())
     {
-        Console.WriteLine("No tasks found");
+        Console.WriteLine("No tasks found!");
         return;
     }
 
@@ -136,11 +127,8 @@ static async Task UpdateTaskStatus(TaskService taskService)
     
     bool newStatus = statusInput == "1";
     
-    var success = await taskService.UpdateTaskCompletedAsync(id, newStatus);
-    if (success)
-        Console.WriteLine("Task status updated successfully!");
-    else
-        Console.WriteLine("Error update a task status!");
+    var result = await taskService.UpdateTaskStatusAsync(id, newStatus);
+    Console.WriteLine(result);
 }
 
 static async Task DeleteTask(TaskService taskService)
@@ -172,9 +160,6 @@ static async Task DeleteTask(TaskService taskService)
         return;
     }
 
-    var success = await taskService.DeleteTaskAsync(id);
-    if (success)
-        Console.WriteLine("The task was successfully deleted!");
-    else
-        Console.WriteLine("Error when delete a task!");
+    var result = await taskService.DeleteTaskAsync(id);
+    Console.WriteLine(result);
 }

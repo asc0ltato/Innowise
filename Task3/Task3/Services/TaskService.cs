@@ -22,8 +22,14 @@ public class TaskService
         return await _taskRepository.GetByIdAsync(id);
     }
     
-    public async Task<bool> AddTaskAsync(string title, string description)
+    public async Task<string> AddTaskAsync(string title, string description)
     {
+        if (string.IsNullOrWhiteSpace(title))
+            return "Error: Title is required!";
+
+        if (title.Length > 255)
+            return "Error: Title is too long!";
+        
         var task = new TaskItem()
         {
             Title = title,
@@ -32,20 +38,35 @@ public class TaskService
             CreatedAt = DateTime.Now
         };
 
-        return await _taskRepository.AddAsync(task);
+        var success = await _taskRepository.AddAsync(task);
+        return success ? "The task was successfully added!" : "Error when add a task!";
     }
 
-    public async Task<bool> UpdateTaskCompletedAsync(int id, bool isCompleted)
+    public async Task<string> UpdateTaskStatusAsync(int id, bool isCompleted)
     {
+        if (id <= 0)
+            return "Error: Invalid ID!";
+        
         var task = await _taskRepository.GetByIdAsync(id);
-        if (task == null) return false;
+        if (task == null)
+            return "Error: Task not found!";
 
         task.IsCompleted = isCompleted;
-        return await _taskRepository.UpdateAsync(task);
+        var success = await _taskRepository.UpdateAsync(task);
+        
+        return success ? "Task status updated successfully!" : "Error update a task status!";
     }
 
-    public async Task<bool> DeleteTaskAsync(int id)
+    public async Task<string> DeleteTaskAsync(int id)
     {
-        return await _taskRepository.DeleteAsync(id);
+        if (id <= 0)
+            return "Error: Invalid ID!";
+
+        var task = await _taskRepository.GetByIdAsync(id);
+        if (task == null)
+            return "Error: Task not found!";
+
+        var success = await _taskRepository.DeleteAsync(id);
+        return success ? "The task was successfully deleted!" : "Error when delete a task!";
     }
 }
