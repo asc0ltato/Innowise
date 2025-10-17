@@ -3,6 +3,7 @@ using Task3.Database.Interfaces;
 using Task3.Repositories;
 using Task3.Repositories.Interfaces;
 using Task3.Services;
+using Task3.Services.Interfaces;
 
 const string connectionString = "Data Source=.;Initial Catalog=Task3;Integrated Security=True;TrustServerCertificate=True";
 
@@ -11,10 +12,11 @@ var databaseInitializer = new DatabaseInitializer(connectionString);
 await databaseInitializer.InitializeAsync();
 IDbConnectionFactory connectionFactory = new SqlConnectionFactory(connectionString);
 ITaskRepository taskRepository = new TaskRepository(connectionFactory);
-var taskService = new TaskService(taskRepository);
+ITaskService taskService = new TaskService(taskRepository); 
 
 await RunApplication(taskService);
-static async Task RunApplication(TaskService taskService)
+
+static async Task RunApplication(ITaskService taskService)
 {
     while (true)
     {
@@ -27,51 +29,59 @@ static async Task RunApplication(TaskService taskService)
         Console.WriteLine("5. Exit");
         Console.Write("Select an action: ");
 
-        var choice = Console.ReadLine();
-
-        switch (choice)
+        if (!int.TryParse(Console.ReadLine(), out int choice))
         {
-            case "1":
+            Console.WriteLine("Error: Please enter a valid number!");
+            WaitForContinue();
+            continue;
+        }
+
+        switch ((MenuChoice)choice)
+        {
+            case MenuChoice.AddTask:
                 await AddTask(taskService);
                 break;
-            case "2":
+            case MenuChoice.ViewAllTasks:
                 await ViewAllTasks(taskService);
                 break;
-            case "3":
+            case MenuChoice.UpdateTaskStatus:
                 await UpdateTaskStatus(taskService);
                 break;
-            case "4":
+            case MenuChoice.DeleteTask:
                 await DeleteTask(taskService);
                 break;
-            case "5":
+            case MenuChoice.Exit:
                 Console.WriteLine("Goodbye!");
                 return;
             default:
-                Console.WriteLine("Bad choice!");
+                Console.WriteLine("Bad choice! Please select 1-5.");
+                WaitForContinue();
                 break;
         }
-
-        Console.WriteLine("Press any key to continue...");
-        Console.ReadKey();
     }
 }
 
-static async Task AddTask(TaskService taskService)
+static async Task AddTask(ITaskService taskService)
 {
-    Console.Clear();
-    Console.WriteLine("-------------Add a new task-------------");
+    while (true)
+    {
+        Console.Clear();
+        Console.WriteLine("-------------Add a new task-------------");
     
-    Console.Write("Enter the title: ");
-    var title = Console.ReadLine();
+        Console.Write("Enter the title: ");
+        var title = Console.ReadLine()?.Trim(); 
     
-    Console.Write("Enter the description: ");
-    var description = Console.ReadLine();
+        Console.Write("Enter the description: ");
+        var description = Console.ReadLine()?.Trim();
     
-    var result = await taskService.AddTaskAsync(title, description ?? "");
-    Console.WriteLine(result);
+        var result = await taskService.AddTaskAsync(title, description ?? "");
+        Console.WriteLine(result);
+
+        if (HandleResult(result)) break;
+    }
 }
 
-static async Task ViewAllTasks(TaskService taskService)
+static async Task ViewAllTasks(ITaskService taskService)
 {
     Console.Clear();
     Console.WriteLine("-------------All Tasks List-------------");
@@ -81,6 +91,7 @@ static async Task ViewAllTasks(TaskService taskService)
     if (!tasks.Any())
     {
         Console.WriteLine("No tasks found!");
+        WaitForContinue();
         return;
     }
 
@@ -98,68 +109,90 @@ static async Task ViewAllTasks(TaskService taskService)
         Console.WriteLine($"Created: {task.CreatedAt:dd.MM.yyyy HH:mm}");
         Console.WriteLine();
     }
+    WaitForContinue();
 }
 
-static async Task UpdateTaskStatus(TaskService taskService)
+static async Task UpdateTaskStatus(ITaskService taskService)
 {
-    Console.Clear();
-    Console.WriteLine("-------------Update task status-------------");
-    
-    Console.Write("Enter task ID: ");
-    if (!int.TryParse(Console.ReadLine(), out var id) || id <= 0)
+    while (true)
     {
-        Console.WriteLine("Error: Invalid ID!");
-        return;
+        Console.Clear();
+        Console.WriteLine("-------------Update task status-------------");
+    
+        var id = ReadInteger("Enter task ID: ");
+        if (id == null) continue;
+    
+        Console.Write("New status (1 - completed, 0 - not completed): ");
+        var statusInput = Console.ReadLine()?.Trim();
+    
+        if (statusInput != "0" && statusInput != "1")
+        {
+            Console.WriteLine("Error: Please enter 0 or 1!");
+            WaitForContinue();
+            continue;
+        }
+        
+        bool newStatus = statusInput == "1";
+    
+        var result = await taskService.UpdateTaskStatusAsync(id.Value, newStatus);
+        Console.WriteLine(result);
+        
+        if (HandleResult(result)) break;
     }
-
-    var task = await taskService.GetTaskByIdAsync(id);
-    if (task == null)
-    {
-        Console.WriteLine("Error: Task not found!");
-        return;
-    }
-
-    Console.WriteLine($"Current task: {task.Title}");
-    Console.WriteLine($"Current status: {(task.IsCompleted ? "Completed" : "Not completed")}");
-    
-    Console.Write("New status (1 - completed, 0 - not completed): ");
-    var statusInput = Console.ReadLine();
-    
-    bool newStatus = statusInput == "1";
-    
-    var result = await taskService.UpdateTaskStatusAsync(id, newStatus);
-    Console.WriteLine(result);
 }
 
-static async Task DeleteTask(TaskService taskService)
+static async Task DeleteTask(ITaskService taskService)
 {
-    Console.Clear();
-    Console.WriteLine("-------------Delete task-------------");
+    while (true)
+    {
+        Console.Clear();
+        Console.WriteLine("-------------Delete task-------------");
     
-    Console.Write("Enter the task ID to delete: ");
-    if (!int.TryParse(Console.ReadLine(), out var id) || id <= 0)
-    {
-        Console.WriteLine("Error: Invalid ID!");
-        return;
+        var id = ReadInteger("Enter the task ID to delete: ");
+        if (id == null) continue;
+    
+        var result = await taskService.DeleteTaskAsync(id.Value);
+        Console.WriteLine(result);
+        
+        if (HandleResult(result)) break;
     }
+}
 
-    var task = await taskService.GetTaskByIdAsync(id);
-    if (task == null)
+static int? ReadInteger(string prompt)
+{
+    Console.Write(prompt);
+    var input = Console.ReadLine();
+    
+    if (int.TryParse(input, out var result) && result > 0)
+        return result;
+    
+    Console.WriteLine("Error: Please enter a valid positive number!");
+    return null;
+}
+
+static void WaitForContinue()
+{
+    Console.WriteLine("Press any key to continue...");
+    Console.ReadKey();
+}
+
+static bool HandleResult(string result)
+{
+    if (result.Contains("Error:"))
     {
-        Console.WriteLine("Error: The task wasn't found!");
-        return;
+        WaitForContinue();
+        return false;
     }
+    
+    WaitForContinue();
+    return true;
+}
 
-    Console.WriteLine($"Are you sure you want to delete the task: {task.Title}?");
-    Console.Write("Confirm the deletion (y/n): ");
-    var confirmation = Console.ReadLine()?.ToLower();
-
-    if (confirmation != "y" && confirmation != "yes")
-    {
-        Console.WriteLine("Deletion cancelled");
-        return;
-    }
-
-    var result = await taskService.DeleteTaskAsync(id);
-    Console.WriteLine(result);
+enum MenuChoice
+{
+    AddTask = 1,
+    ViewAllTasks = 2,
+    UpdateTaskStatus = 3,
+    DeleteTask = 4,
+    Exit = 5
 }

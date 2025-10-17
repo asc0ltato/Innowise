@@ -1,9 +1,10 @@
 ﻿using Task3.Models;
 using Task3.Repositories.Interfaces;
+using Task3.Services.Interfaces;
 
 namespace Task3.Services;
 
-public class TaskService
+public class TaskService : ITaskService
 {
     private readonly ITaskRepository _taskRepository;
 
@@ -26,9 +27,6 @@ public class TaskService
     {
         if (string.IsNullOrWhiteSpace(title))
             return "Error: Title is required!";
-
-        if (title.Length > 255)
-            return "Error: Title is too long!";
         
         var task = new TaskItem()
         {
